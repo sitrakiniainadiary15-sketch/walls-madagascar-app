@@ -65,6 +65,69 @@ export async function GET(req) {
     );
   }
 }
+/* =======================
+   POST
+======================= */
+export async function POST(req) {
+  try {
+    await connectDB();
+
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error("MongoDB non connecté");
+    }
+
+    const formData = await req.formData();
+
+    const name = formData.get("name");
+    const price = Number(formData.get("price")) || 0;
+    const stock = Number(formData.get("stock")) || 0;
+    const rawCategory = formData.get("category");
+    const file = formData.get("image");
+
+    if (!name) {
+      return NextResponse.json(
+        { message: "Nom du produit obligatoire" },
+        { status: 400 }
+      );
+    }
+
+    let imagePath = "";
+
+    if (file && file.name) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+      const uploadDir = path.join(process.cwd(), "public/uploads");
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+      imagePath = `/uploads/${fileName}`;
+    }
+
+    const product = await Product.create({
+      name,
+      price,
+      stock,
+      category:
+        rawCategory && rawCategory !== "null" && rawCategory !== ""
+          ? rawCategory
+          : undefined,
+      image: imagePath,
+    });
+
+    return NextResponse.json(product, { status: 201 });
+
+  } catch (error) {
+    console.error("❌ ERREUR POST PRODUIT:", error);
+    return NextResponse.json(
+      { message: error.message },
+      { status: 500 }
+    );
+  }
+}
+
 
 
 /* =======================

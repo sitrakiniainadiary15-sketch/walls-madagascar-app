@@ -6,21 +6,32 @@ import "./navbar.css";
 
 export default function Navbar() {
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
 
   return (
     <header className="navbar">
       <div className="container navbar-inner">
 
+        {/* LOGO */}
         <Link href="/" className="logo">
           MyShop
         </Link>
 
+        {/* NAV */}
         <nav className="nav-links">
           <Link href="/">Accueil</Link>
           <Link href="/boutique">Boutique</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/contact">Contact</Link>
 
+          {/* ADMIN */}
+          {isAdmin && (
+            <Link href="/admin/dashboard" className="admin-link">
+              Dashboard
+            </Link>
+          )}
+
+          {/* AUTH */}
           {!session ? (
             <>
               <Link href="/auth/login">Connexion</Link>
@@ -28,7 +39,10 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <span className="user-email">{session.user?.email}</span>
+              <span className="user-email">
+                {session.user?.email}
+              </span>
+
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="logout"
@@ -37,6 +51,11 @@ export default function Navbar() {
               </button>
             </>
           )}
+
+          {/* CART */}
+          <Link href="/cart" className="cart">
+            🛒 <span className="cart-count">0</span>
+          </Link>
         </nav>
 
       </div>

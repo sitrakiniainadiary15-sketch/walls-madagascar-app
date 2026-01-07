@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import "./boutique.css";
 
 export default function BoutiquePage() {
@@ -17,7 +19,7 @@ export default function BoutiquePage() {
         const data = await res.json();
         setProducts(data.products || []);
       } catch (err) {
-        setError(err.message);
+        setError("Impossible de charger les produits");
       } finally {
         setLoading(false);
       }
@@ -31,7 +33,7 @@ export default function BoutiquePage() {
 
   return (
     <div className="boutique-container">
-      <h1 className="title">Boutique</h1>
+      <h1 className="title">🛍️ Boutique</h1>
 
       {products.length === 0 ? (
         <p>Aucun produit disponible</p>
@@ -39,13 +41,25 @@ export default function BoutiquePage() {
         <div className="grid">
           {products.map((product) => (
             <div className="card" key={product._id}>
-              <img
-                src={product.image || "/no-image.png"}
-                alt={product.name}
-              />
+              <div className="image-wrapper">
+                <Image
+                  src={product.image || "/no-image.png"}
+                  alt={product.name}
+                  width={300}
+                  height={200}
+                  className="product-image"
+                />
+              </div>
+
               <h3>{product.name}</h3>
               <p className="price">{product.price} Ar</p>
-              <button>Voir le produit</button>
+
+              <Link
+                href={`/products/${product._id}`}
+                className="btn"
+              >
+                Voir le produit
+              </Link>
             </div>
           ))}
         </div>

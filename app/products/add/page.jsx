@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import ProductForm from "@/app/components/ProductForm";
 
+
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
