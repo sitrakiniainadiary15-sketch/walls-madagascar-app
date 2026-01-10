@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useCart } from "../components/CartContext";
 import "./boutique.css";
 
 export default function BoutiquePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { addToCart } = useCart();
 
   useEffect(() => {
     async function fetchProducts() {
@@ -52,11 +55,45 @@ export default function BoutiquePage() {
               </div>
 
               <h3>{product.name}</h3>
-              <p className="price">{product.price} Ar</p>
 
+              {/* PRIX */}
+              <p className="price">
+                {product.promoPrice ? (
+                  <>
+                    <span className="old-price">
+                      {product.price} Ar
+                    </span>
+                    <span className="promo-price">
+                      {product.promoPrice} Ar
+                    </span>
+                  </>
+                ) : (
+                  <span>{product.price} Ar</span>
+                )}
+              </p>
+
+              {/* AJOUT PANIER */}
+              <button
+                className="btn add-cart"
+                disabled={!product.isAvailable || product.stock === 0}
+                onClick={() =>
+                  addToCart({
+                    _id: product._id,
+                    name: product.name,
+                    price: product.promoPrice ?? product.price,
+                    image: product.image,
+                    quantity: 1,
+                    stock: product.stock,
+                  })
+                }
+              >
+                Ajouter au panier
+              </button>
+
+              {/* LIEN PRODUIT */}
               <Link
                 href={`/products/${product._id}`}
-                className="btn"
+                className="btn secondary"
               >
                 Voir le produit
               </Link>

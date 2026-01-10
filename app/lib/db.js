@@ -13,17 +13,15 @@ if (!cached) {
 }
 
 export async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
+  if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    }).then((mongoose) => {
-      console.log("✅ MongoDB connecté");
-      return mongoose;
-    });
+    cached.promise = mongoose
+      .connect(MONGODB_URI)
+      .then((mongoose) => {
+        console.log("✅ MongoDB connecté");
+        return mongoose;
+      });
   }
 
   cached.conn = await cached.promise;

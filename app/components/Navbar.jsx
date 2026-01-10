@@ -2,11 +2,23 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { useCart } from "./CartContext";
+
 import "./navbar.css";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "admin";
+
+  // 🛒 PANIER
+  const { cartItems } = useCart();
+
+const cartCount = cartItems.reduce(
+  (total, item) => total + (item.quantity || 1),
+  0
+);
+
+  
 
   return (
     <header className="navbar">
@@ -54,7 +66,10 @@ export default function Navbar() {
 
           {/* CART */}
           <Link href="/cart" className="cart">
-            🛒 <span className="cart-count">0</span>
+            🛒
+            <span className="cart-count">
+              {cartCount}
+            </span>
           </Link>
         </nav>
 

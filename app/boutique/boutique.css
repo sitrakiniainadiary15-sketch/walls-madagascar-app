@@ -510,3 +510,24 @@ body {
     background: linear-gradient(135deg, #1e293b, #334155);
   }
 }
+.add-cart {
+  background: #0f766e;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.add-cart:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.old-price {
+  text-decoration: line-through;
+  color: #888;
+  margin-right: 8px;
+}
+
+.promo-price {
+  color: #e11d48;
+  font-weight: bold;
+}

@@ -1,10 +1,8 @@
 "use client";
 
-
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import "./globals.css";
+import "./home.css";
 
 
 
@@ -12,16 +10,19 @@ export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+ 
+
 
   useEffect(() => {
     async function loadProducts() {
       try {
-        const res = await fetch("/api/products");
+        const res = await fetch("/api/products", { cache: "no-store" });
         if (!res.ok) throw new Error("Erreur chargement produits");
 
         const data = await res.json();
         setProducts(data.products || []);
-      } catch {
+      } catch (err) {
+        console.error(err);
         setError("Impossible de charger les produits");
       } finally {
         setLoading(false);
@@ -32,88 +33,82 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="space-y-24">
+    <main className="home">
 
-      {/* ================= HERO ================= */}
-      <section className="bg-black text-white py-24 text-center px-4">
-        <h1 className="text-4xl md:text-5xl font-bold mb-6">
-          Achetez malin. Achetez en confiance.
-        </h1>
-
-        <p className="opacity-80 max-w-xl mx-auto mb-8">
+      <section className="hero">
+        <h1>Achetez malin. Achetez en confiance.</h1>
+        <p>
           Découvrez une sélection de produits soigneusement choisis
           pour répondre à vos besoins.
         </p>
-
-        <Link
-          href="/boutique"
-          className="inline-block bg-white text-black px-8 py-4 rounded font-medium"
-        >
+        <Link href="/boutique" className="hero-btn">
           Découvrir la boutique
         </Link>
       </section>
 
-      {/* ================= AVANTAGES ================= */}
-      <section className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-center">
-          {[
-            ["Qualité garantie", "Des produits sélectionnés avec soin."],
-            ["Paiement sécurisé", "Transactions fiables et protégées."],
-            ["Support client", "Une équipe à votre écoute."],
-          ].map(([title, text]) => (
-            <div key={title}>
-              <h3 className="font-semibold text-lg mb-2">{title}</h3>
-              <p className="text-gray-600 text-sm">{text}</p>
-            </div>
-          ))}
+      <section className="advantages">
+        <div className="advantages-grid">
+          <div>
+            <h3>Qualité garantie</h3>
+            <p>Des produits sélectionnés avec soin.</p>
+          </div>
+          <div>
+            <h3>Paiement sécurisé</h3>
+            <p>Transactions fiables et protégées.</p>
+          </div>
+          <div>
+            <h3>Support client</h3>
+            <p>Une équipe à votre écoute.</p>
+          </div>
         </div>
       </section>
 
-      {/* ================= PRODUITS ================= */}
-      <section className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold">Produits récents</h2>
-          <Link href="/boutique" className="text-sm underline">
-            Voir tout →
-          </Link>
+      <section className="products">
+        <div className="products-header">
+          <h2>Produits récents</h2>
+          <Link href="/boutique">Voir tout →</Link>
         </div>
-        
 
         {loading && <p>Chargement...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-
+        {error && <p className="error">{error}</p>}
         {!loading && products.length === 0 && (
           <p>Aucun produit disponible</p>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="products-grid">
           {products.slice(0, 6).map((product) => (
-            <div
-              key={product._id}
-              className="border rounded-lg overflow-hidden flex flex-col hover:shadow-lg transition"
-            >
-              {/* IMAGE */}
-              <div className="relative h-48 w-full bg-gray-100">
-                <Image
+            <div key={product._id} className="product-card">
+              <div className="product-image">
+                <img
                   src={product.image || "/no-image.png"}
                   alt={product.name}
-                  fill
-                  className="object-cover"
                 />
               </div>
 
-              {/* CONTENT */}
-              <div className="p-4 flex flex-col flex-grow">
-                <h3 className="font-medium mb-1">{product.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  {product.price} €
-                </p>
+              <div className="product-content">
+                <h3>{product.name}</h3>
+
+                {product.brand && <p>Marque : <strong>{product.brand}</strong></p>}
+                {product.size && <p>Taille : <strong>{product.size}</strong></p>}
+                {product.condition && <p>État : <strong>{product.condition}</strong></p>}
+                {product.description && <p className="desc">{product.description}</p>}
+
+                <div className="price">
+                  {product.promoPrice ? (
+                    <>
+                      <span className="promo">{product.promoPrice} Ar</span>
+                      <span className="old">{product.price} Ar</span>
+                    </>
+                  ) : (
+                    <span className="normal">{product.price} Ar</span>
+                  )}
+                </div>
 
                 <Link
                   href={`/products/${product._id}`}
-                  className="mt-auto text-sm font-medium underline"
+                  className="product-btn"
                 >
-                  Voir le produit →
+                  Voir le produit
                 </Link>
               </div>
             </div>
@@ -121,12 +116,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= CTA ================= */}
-      <section className="text-center pb-24">
-        <Link
-          href="/boutique"
-          className="inline-block bg-black text-white px-10 py-4 rounded"
-        >
+      <section className="cta">
+        <Link href="/boutique" className="cta-btn">
           Accéder à la boutique
         </Link>
       </section>

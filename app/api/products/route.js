@@ -66,7 +66,7 @@ export async function GET(req) {
   }
 }
 /* =======================
-   POST
+   POST - Ajouter produit
 ======================= */
 export async function POST(req) {
   try {
@@ -79,8 +79,15 @@ export async function POST(req) {
     const formData = await req.formData();
 
     const name = formData.get("name");
+    const brand = formData.get("brand");
+    const size = formData.get("size");
+    const condition = formData.get("condition");
+    const description = formData.get("description");
+
     const price = Number(formData.get("price")) || 0;
+    const promoPrice = Number(formData.get("promoPrice")) || null;
     const stock = Number(formData.get("stock")) || 0;
+
     const rawCategory = formData.get("category");
     const file = formData.get("image");
 
@@ -93,6 +100,7 @@ export async function POST(req) {
 
     let imagePath = "";
 
+    // 📷 Upload image
     if (file && file.name) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
@@ -108,13 +116,19 @@ export async function POST(req) {
 
     const product = await Product.create({
       name,
+      brand,
+      size,
+      condition,
+      description,
       price,
+      promoPrice,
       stock,
       category:
         rawCategory && rawCategory !== "null" && rawCategory !== ""
           ? rawCategory
           : undefined,
       image: imagePath,
+      isAvailable: stock > 0,
     });
 
     return NextResponse.json(product, { status: 201 });
