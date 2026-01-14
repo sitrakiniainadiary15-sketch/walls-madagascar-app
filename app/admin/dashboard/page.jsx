@@ -22,7 +22,6 @@ export default async function AdminDashboard() {
         Dashboard Admin
       </h1>
 
-
       {/* 📊 STATS + GRAPH */}
       <DashboardStats />
 
@@ -39,9 +38,15 @@ export default async function AdminDashboard() {
         <a href="/admin/users" className={styles.card}>
           👤 Utilisateurs
         </a>
+
+        {/* ✅ BOUTON AJOUTÉ */}
+        <a href="/admin/orders" className={styles.card}>
+          📦 Voir les commandes
+        </a>
+
         <a href="/products/add" className={styles.card}>
-  ➕ Ajouter un produit
-</a>
+          ➕ Ajouter un produit
+        </a>
       </div>
     </div>
   );

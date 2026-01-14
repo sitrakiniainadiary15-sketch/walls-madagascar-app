@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/app/lib/db";
 import Order from "@/app/models/Order";
 
@@ -7,9 +8,11 @@ export async function POST(req) {
     await connectDB();
 
     const body = await req.json();
-
     const { customer, cartItems, total, payment, delivery } = body;
 
+    /* ======================
+       VALIDATION CLIENT
+    ====================== */
     if (!customer) {
       return NextResponse.json(
         { message: "Client manquant" },
@@ -26,6 +29,9 @@ export async function POST(req) {
       );
     }
 
+    /* ======================
+       VALIDATION PANIER
+    ====================== */
     if (!Array.isArray(cartItems) || cartItems.length === 0) {
       return NextResponse.json(
         { message: "Panier vide" },
@@ -33,24 +39,38 @@ export async function POST(req) {
       );
     }
 
-    const products = cartItems.map((item) => ({
-      product: item._id,
-      quantity: item.quantity,
-    }));
+    /* ======================
+       FORMAT PRODUITS (IMPORTANT)
+    ====================== */
+    const products = cartItems.map((item) => {
+      // 🔴 Empêche l’erreur "Cast to ObjectId failed"
+      if (!mongoose.Types.ObjectId.isValid(item._id)) {
+        throw new Error("ID produit invalide");
+      }
 
+      return {
+        product: new mongoose.Types.ObjectId(item._id),
+        quantity: Number(item.quantity) || 1,
+      };
+    });
+
+    /* ======================
+       CRÉATION COMMANDE
+    ====================== */
     const order = await Order.create({
       customer: {
         firstname,
         lastname,
         email,
-        phone,
+        phone: phone || "",
         city,
         address,
       },
       products,
-      total,
+      total: Number(total),
       payment: payment || "cash",
       delivery: delivery || "standard",
+      status: "pending", // 🔥 IMPORTANT
     });
 
     return NextResponse.json(order, { status: 201 });
@@ -59,8 +79,7 @@ export async function POST(req) {
 
     return NextResponse.json(
       {
-        message: "Erreur serveur",
-        error: error.message,
+        message: error.message || "Erreur serveur",
       },
       { status: 500 }
     );
