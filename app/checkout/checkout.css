@@ -1,50 +1,23 @@
-.checkout-container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
+.payment-section {
+  margin: 15px 0;
 }
 
-.summary {
-  background: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+.payment-section label {
+  display: block;
+  margin-bottom: 8px;
 }
 
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  margin: 8px 0;
-}
-
-.total {
-  display: flex;
-  justify-content: space-between;
-  font-size: 18px;
-}
-
-.checkout-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.checkout-form input,
-.checkout-form textarea {
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-.checkout-form button {
-  background: black;
-  color: white;
+.payment-section select {
+  width: 100%;
   padding: 12px;
-  border: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
   cursor: pointer;
-  border-radius: 5px;
 }
 
-.checkout-form button:hover {
-  opacity: 0.9;
+.payment-section select:focus {
+  outline: none;
+  border-color: #007bff;
 }

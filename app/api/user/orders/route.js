@@ -1,32 +1,32 @@
-export const runtime = "nodejs"; // ✅ À AJOUTER
-
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/app/lib/db";
 import Order from "@/app/models/Order";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    // 🔐 PROTECTION ADMIN
-    if (!session || session.user.role !== "admin") {
+    if (!session) {
       return NextResponse.json(
-        { message: "Accès refusé" },
+        { message: "Non autorisé" },
         { status: 401 }
       );
     }
 
     await connectDB();
 
-    const orders = await Order.find()
-      .populate("products.product") // ✅ produits complets
-      .sort({ createdAt: -1 });
+    // 📦 Récupérer les commandes par email de l'utilisateur connecté
+    const orders = await Order.find({ 
+      "customer.email": session.user.email 
+    })
+    .sort({ createdAt: -1 })
+    .populate("products.product", "name price image");
 
     return NextResponse.json(orders);
   } catch (error) {
-    console.error("ADMIN ORDERS ERROR:", error);
+    console.error("GET USER ORDERS ERROR:", error);
     return NextResponse.json(
       { message: "Erreur serveur" },
       { status: 500 }

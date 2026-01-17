@@ -15,6 +15,10 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
+  
+  // ✅ NOUVEAU : État pour le mode de paiement
+  const [payment, setPayment] = useState("cash");
+  
   const [loading, setLoading] = useState(false);
 
   // --------- Soumission ----------
@@ -48,7 +52,7 @@ export default function CheckoutPage() {
           },
           cartItems,
           total: cartTotal,
-          payment: "cash",
+          payment,  // ✅ Utilise la valeur sélectionnée
           delivery: "standard",
         }),
       });
@@ -123,6 +127,21 @@ export default function CheckoutPage() {
           required
         />
 
+        {/* ✅ NOUVEAU : Sélecteur mode de paiement */}
+        <div className="payment-section">
+          <label><strong>Mode de paiement :</strong></label>
+          <select 
+            value={payment} 
+            onChange={(e) => setPayment(e.target.value)}
+            required
+          >
+            <option value="cash">💵 Paiement à la livraison</option>
+            <option value="mobile_money">📱 Mobile Money (MVola, Orange Money)</option>
+            <option value="card">💳 Carte bancaire</option>
+            <option value="bank_transfer">🏦 Virement bancaire</option>
+          </select>
+        </div>
+
         <p className="total">
           <strong>Total :</strong> {cartTotal} Ar
         </p>
@@ -131,52 +150,8 @@ export default function CheckoutPage() {
           {loading ? "Envoi..." : "Confirmer la commande"}
         </button>
       </form>
-
-      <style jsx>{`
-        .checkout-container {
-          max-width: 600px;
-          margin: 40px auto;
-          padding: 20px;
-          border: 1px solid #ddd;
-          border-radius: 12px;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        .checkout-form input,
-        .checkout-form textarea {
-          width: 100%;
-          padding: 10px;
-          margin-bottom: 14px;
-          border: 1px solid #ccc;
-          border-radius: 8px;
-          font-size: 16px;
-        }
-        textarea {
-          resize: vertical;
-          min-height: 80px;
-        }
-        .total {
-          margin: 15px 0;
-          font-size: 18px;
-        }
-        button {
-          width: 100%;
-          padding: 12px;
-          font-size: 18px;
-          background: #0070f3;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-        }
-        button:disabled {
-          background: #999;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 }
+
+     

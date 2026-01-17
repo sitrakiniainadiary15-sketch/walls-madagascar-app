@@ -1,4 +1,3 @@
-// app/models/Order.js
 import mongoose from "mongoose";
 
 const OrderSchema = new mongoose.Schema(
@@ -25,9 +24,16 @@ const OrderSchema = new mongoose.Schema(
 
     total: Number,
 
+    // ✅ AJOUTER CE CHAMP
+    payment: {
+      type: String,
+      enum: ["cash", "mobile_money", "card", "bank_transfer"],
+      default: "cash",
+    },
+
     status: {
       type: String,
-      enum: ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "confirmed", "processing", "paid", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
   },
