@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -15,12 +16,12 @@ export default function AdminOrdersPage() {
         const res = await fetch("/api/admin/orders");
 
         if (!res.ok) {
-          router.push("/admin/unauthorized");
+          console.error("Erreur lors du chargement");
           return;
         }
 
         const data = await res.json();
-        setOrders(data);
+        setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("FETCH ORDERS ERROR:", error);
       } finally {
@@ -29,7 +30,7 @@ export default function AdminOrdersPage() {
     };
 
     fetchOrders();
-  }, [router]);
+  }, []); // ✅ correction ici
 
   const updateStatus = async (orderId, newStatus) => {
     setUpdatingId(orderId);
@@ -37,7 +38,9 @@ export default function AdminOrdersPage() {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -66,13 +69,15 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div style={{ padding: 30 }}>
-      <h1>📦 Commandes</h1>
-
+    <div>
       {orders.length === 0 ? (
         <p>Aucune commande enregistrée</p>
       ) : (
-        <table width="100%" cellPadding="10" style={{ background: "white" }}>
+        <table
+          width="100%"
+          cellPadding="10"
+          style={{ background: "white" }}
+        >
           <thead>
             <tr>
               <th>Client</th>
@@ -84,8 +89,7 @@ export default function AdminOrdersPage() {
               <th>Paiement</th>
               <th>Action</th>
               <th>Statut</th>
-              <th>date</th>
-
+              <th>Date</th>
             </tr>
           </thead>
 
@@ -93,30 +97,39 @@ export default function AdminOrdersPage() {
             {orders.map((order) => {
               const customer = order.customer || {};
 
+              const fullName =
+                customer.firstname && customer.lastname
+                  ? `${customer.firstname} ${customer.lastname}`
+                  : customer.name || "—";
+
               return (
                 <tr key={order._id}>
-                  <td>{customer.firstname} {customer.lastname}</td>
-                  <td>{customer.email}</td>
+                  <td>{fullName}</td>
+                  <td>{customer.email || "—"}</td>
                   <td>{customer.phone || "—"}</td>
                   <td>{customer.address || "—"}</td>
-                  <td>{customer.city}</td>
-                  <td><strong>{order.total} Ar</strong></td>
+                  <td>{customer.city || "—"}</td>
+
+                  <td>
+                    <strong>{order.total} Ar</strong>
+                  </td>
 
                   <td>
                     {order.payment === "cash" && "💵 Espèces"}
                     {order.payment === "mobile_money" && "📱 Mobile Money"}
                     {order.payment === "card" && "💳 Carte"}
                     {order.payment === "bank_transfer" && "🏦 Virement"}
-
                   </td>
-                  <td>
-  <button
-    onClick={() => router.push(`/admin/orders/${order._id}`)}
-  >
-    Voir
-  </button>
-</td>
 
+                  <td>
+                    <button
+                      onClick={() =>
+                        router.push(`/admin/orders/${order._id}`)
+                      }
+                    >
+                      Voir
+                    </button>
+                  </td>
 
                   <td>
                     <select
@@ -137,7 +150,9 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td>
-                    {new Date(order.createdAt).toLocaleDateString("fr-FR")}
+                    {order.createdAt
+                      ? new Date(order.createdAt).toLocaleDateString("fr-FR")
+                      : "—"}
                   </td>
                 </tr>
               );

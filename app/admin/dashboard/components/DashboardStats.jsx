@@ -11,55 +11,87 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import styles from "../dashboard.module.css";
-
 export default function DashboardStats() {
-  const [stats, setStats] = useState(null);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/stats")
-      .then(res => res.json())
-      .then(data => setStats(data));
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("API ERROR:", text);
+          throw new Error("Erreur API");
+        }
+        return res.json();
+      })
+      .then((json) => setData(json))
+      .catch(() => setError(true));
   }, []);
 
-  if (!stats) {
-    return <div className={styles.card}>Chargement…</div>;
+  if (error) {
+    return <div>❌ Erreur chargement stats</div>;
   }
 
+  if (!data) {
+    return <div>⏳ Chargement…</div>;
+  }
+
+  const { stats, chartData } = data;
+
   return (
-    <>
-      {/* STATS */}
-      <div className={styles.statsGrid}>
-        <StatCard title="Produits" value={stats.productsCount} />
-        <StatCard title="Catégories" value={stats.categoriesCount} />
-        <StatCard title="Utilisateurs" value={stats.usersCount} />
+    <div style={{ display: "grid", gap: "24px" }}>
+      {/* 🔢 CARTES */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "16px",
+        }}
+      >
+        <StatCard title="Clients" value={stats.customersCount} />
+        <StatCard title="Commandes" value={stats.ordersCount} />
+        <StatCard title="Chiffre d'affaires" value={`${stats.totalRevenue} €`} />
+        <StatCard title="Aujourd’hui" value={stats.todayOrders} />
       </div>
 
-      {/* GRAPH */}
-      <div className={styles.chartBox}>
-        <h2 className={styles.chartTitle}>
-          📊 Activité globale
-        </h2>
+      {/* 📊 GRAPH */}
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "10px",
+          boxShadow: "0 2px 8px rgba(0,0,0,.1)",
+        }}
+      >
+        <h2 style={{ marginBottom: "12px" }}>📊 Statistiques globales</h2>
 
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={stats.chartData}>
+          <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </>
+    </div>
   );
 }
 
 function StatCard({ title, value }) {
   return (
-    <div className={styles.card}>
-      <div className={styles.cardTitle}>{title}</div>
-      <div className={styles.cardValue}>{value}</div>
+    <div
+      style={{
+        background: "#fff",
+        padding: "16px",
+        borderRadius: "10px",
+        boxShadow: "0 2px 8px rgba(0,0,0,.1)",
+      }}
+    >
+      <p style={{ color: "#6b7280", fontSize: "14px" }}>{title}</p>
+      <h3 style={{ fontSize: "26px", fontWeight: "bold" }}>{value}</h3>
     </div>
   );
 }

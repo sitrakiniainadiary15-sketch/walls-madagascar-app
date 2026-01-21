@@ -35,7 +35,7 @@ export default async function AdminDashboard() {
           📂 Gestion Catégories
         </a>
 
-        <a href="/admin/users" className={styles.card}>
+        <a href="/admin/customers" className={styles.card}>
           👤 Utilisateurs
         </a>
 

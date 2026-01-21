@@ -2,36 +2,62 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
-import Product from "@/app/models/Product";
-import Category from "@/app/models/Category";
-import User from "@/app/models/User";
+import Order from "@/app/models/Order";
+import Customer from "@/app/models/Customer";
 
 export async function GET() {
   try {
     await connectDB();
 
-    const productsCount = await Product.countDocuments();
-    const categoriesCount = await Category.countDocuments();
-    const usersCount = await User.countDocuments();
+    /* 👥 Clients */
+    const customersCount = await Customer.countDocuments();
 
-    // Exemple simple de stats (mock logique)
+    /* 📦 Commandes */
+    const ordersCount = await Order.countDocuments();
+
+    /* 💰 Chiffre d'affaires */
+    const revenueAgg = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$total" },
+        },
+      },
+    ]);
+    const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].total : 0;
+
+    /* 📅 Commandes aujourd’hui */
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayOrders = await Order.countDocuments({
+      createdAt: { $gte: today },
+    });
+
+    /* 📊 Données pour graphique */
     const chartData = [
-      { name: "Produits", value: productsCount },
-      { name: "Catégories", value: categoriesCount },
-      { name: "Utilisateurs", value: usersCount },
+      { name: "Clients", value: customersCount },
+      { name: "Commandes", value: ordersCount },
+      { name: "Chiffre d'affaires", value: totalRevenue },
     ];
 
     return NextResponse.json({
-      productsCount,
-      categoriesCount,
-      usersCount,
+      success: true,
+      stats: {
+        customersCount,
+        ordersCount,
+        totalRevenue,
+        todayOrders,
+      },
       chartData,
     });
-
   } catch (error) {
     console.error("STATS ERROR:", error);
     return NextResponse.json(
-      { message: "Erreur stats" },
+      {
+        success: false,
+        message: "Erreur stats",
+      },
       { status: 500 }
     );
   }

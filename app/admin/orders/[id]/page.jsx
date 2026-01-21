@@ -52,12 +52,12 @@ export default function AdminOrderDetailPage() {
       <p>
         {customer.firstname} {customer.lastname}
       </p>
-      <p>Email : {customer.email}</p>
+      <p>Email : {customer.email || "—"}</p>
       <p>Téléphone : {customer.phone || "—"}</p>
 
       <h3>📍 Adresse</h3>
-      <p>{customer.address}</p>
-      <p>{customer.city}</p>
+      <p>{customer.address || "—"}</p>
+      <p>{customer.city || "—"}</p>
 
       <h3>💰 Paiement</h3>
       <p>{order.payment}</p>
@@ -69,7 +69,11 @@ export default function AdminOrderDetailPage() {
       <p>{order.total} Ar</p>
 
       <h3>📅 Date</h3>
-      <p>{new Date(order.createdAt).toLocaleString()}</p>
+      <p>
+        {order.createdAt
+          ? new Date(order.createdAt).toLocaleString("fr-FR")
+          : "—"}
+      </p>
     </div>
   );
 }

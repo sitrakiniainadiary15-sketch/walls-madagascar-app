@@ -1,40 +1,42 @@
-import nodemailer from "nodemailer";
+// app/api/test-email/route.js
+
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/app/lib/mailer";
 
-export async function GET() {
+// ✅ GET pour tester via navigateur
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get("email");
+
+  if (!email) {
+    return NextResponse.json({
+      message: "Usage: /api/test-email?email=ton-email@gmail.com"
+    });
+  }
+
   try {
-    const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // ✅ CORRECTION ICI
-  },
-});
+    console.log("🧪 Test envoi à:", email);
 
-    // 📩 Envoi du mail test
-    await transporter.sendMail({
-      from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_USER}>`,
-      to: process.env.ADMIN_EMAIL, // email de test
-      subject: "✅ Test email réussi",
+    await sendEmail({
+      to: email,
+      subject: "🧪 Test - " + new Date().toLocaleString("fr-FR"),
       html: `
-        <h2>Test Nodemailer</h2>
-        <p>🎉 Félicitations !</p>
-        <p>Votre configuration email fonctionne correctement.</p>
+        <div style="font-family: Arial; padding: 20px;">
+          <h1 style="color: #22c55e;">✅ Ça marche !</h1>
+          <p>Email reçu le ${new Date().toLocaleString("fr-FR")}</p>
+        </div>
       `,
     });
 
-    return NextResponse.json({ message: "Email envoyé avec succès" });
-  } catch (error) {
-    console.error("EMAIL TEST ERROR:", error);
+    return NextResponse.json({ 
+      success: true, 
+      message: `Email envoyé à ${email}` 
+    });
 
-    return NextResponse.json(
-      { message: "Erreur lors de l'envoi de l'email", error: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message 
+    }, { status: 500 });
   }
 }
