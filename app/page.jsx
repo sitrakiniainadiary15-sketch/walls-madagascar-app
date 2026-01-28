@@ -4,14 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import "./home.css";
 
-
-
 export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
- 
-
 
   useEffect(() => {
     async function loadProducts() {
@@ -35,6 +31,7 @@ export default function HomePage() {
   return (
     <main className="home">
 
+      {/* HERO */}
       <section className="hero">
         <h1>Achetez malin. Achetez en confiance.</h1>
         <p>
@@ -46,23 +43,10 @@ export default function HomePage() {
         </Link>
       </section>
 
-      <section className="advantages">
-        <div className="advantages-grid">
-          <div>
-            <h3>Qualité garantie</h3>
-            <p>Des produits sélectionnés avec soin.</p>
-          </div>
-          <div>
-            <h3>Paiement sécurisé</h3>
-            <p>Transactions fiables et protégées.</p>
-          </div>
-          <div>
-            <h3>Support client</h3>
-            <p>Une équipe à votre écoute.</p>
-          </div>
-        </div>
-      </section>
+      {/* AVANTAGES */}
+     
 
+      {/* PRODUITS */}
       <section className="products">
         <div className="products-header">
           <h2>Produits récents</h2>
@@ -75,9 +59,10 @@ export default function HomePage() {
           <p>Aucun produit disponible</p>
         )}
 
-        <div className="products-grid">
+        <div className="products-grid home-grid">
           {products.slice(0, 6).map((product) => (
-            <div key={product._id} className="product-card">
+            <div key={product._id} className="product-card home-card">
+
               <div className="product-image">
                 <img
                   src={product.image || "/no-image.png"}
@@ -87,11 +72,6 @@ export default function HomePage() {
 
               <div className="product-content">
                 <h3>{product.name}</h3>
-
-                {product.brand && <p>Marque : <strong>{product.brand}</strong></p>}
-                {product.size && <p>Taille : <strong>{product.size}</strong></p>}
-                {product.condition && <p>État : <strong>{product.condition}</strong></p>}
-                {product.description && <p className="desc">{product.description}</p>}
 
                 <div className="price">
                   {product.promoPrice ? (
@@ -111,15 +91,10 @@ export default function HomePage() {
                   Voir le produit
                 </Link>
               </div>
+
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="cta">
-        <Link href="/boutique" className="cta-btn">
-          Accéder à la boutique
-        </Link>
       </section>
 
     </main>

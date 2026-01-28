@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import "./ProductForm.css";
 
 export default function ProductForm({
   categories,
@@ -18,11 +19,36 @@ export default function ProductForm({
   const [stock, setStock] = useState(editingProduct?.stock || "");
 
   const [category, setCategory] = useState(editingProduct?.category?._id || "");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(editingProduct?.image || null);
+
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState(
+    editingProduct?.images || (editingProduct?.image ? [editingProduct.image] : [])
+  );
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setImageFiles((prev) => [...prev, ...files]);
+
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removeImage = (index) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
+    const existingCount =
+      editingProduct?.images?.length || (editingProduct?.image ? 1 : 0);
+
+    if (index >= existingCount) {
+      const newFileIndex = index - existingCount;
+      setImageFiles((prev) => prev.filter((_, i) => i !== newFileIndex));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +69,16 @@ export default function ProductForm({
       formData.append("stock", Number(stock));
 
       if (category) formData.append("category", category);
-      if (imageFile) formData.append("image", imageFile);
+
+      imageFiles.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      const existingImages = imagePreviews.filter(
+        (img) => typeof img === "string" && !img.startsWith("blob:")
+      );
+      formData.append("existingImages", JSON.stringify(existingImages));
+
       if (editingProduct?._id) formData.append("_id", editingProduct._id);
 
       await onSave(formData);
@@ -56,8 +91,7 @@ export default function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md">
-
+    <form onSubmit={handleSubmit} className="product-form">
       <input
         placeholder="Nom du produit"
         value={name}
@@ -127,36 +161,52 @@ export default function ProductForm({
         ))}
       </select>
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file) {
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-          }
-        }}
-      />
-
-      {imagePreview && (
-        <img
-          src={imagePreview}
-          alt="Preview"
-          className="w-24 h-24 object-contain border"
+      {/* Upload images */}
+      <div className="image-upload-section">
+        <label>Images du produit</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageChange}
         />
+        <p className="image-count">
+          {imagePreviews.length} image(s) sélectionnée(s)
+        </p>
+      </div>
+
+      {/* Prévisualisation */}
+      {imagePreviews.length > 0 && (
+        <div className="image-previews">
+          {imagePreviews.map((src, index) => (
+            <div key={index} className="image-preview-item">
+              <img src={src} alt={`Preview ${index + 1}`} />
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="remove-image-btn"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
-      <div className="flex gap-2">
-        <button type="submit" disabled={loading}>
+      <div className="form-buttons">
+        <button type="submit" disabled={loading} className="btn-submit">
           {loading ? "Chargement..." : "Enregistrer"}
         </button>
-        <button type="button" onClick={onCancel}>
+        <button type="button" onClick={onCancel} className="btn-cancel">
           Annuler
         </button>
       </div>
 
-      {msg && <p>{msg}</p>}
+      {msg && (
+        <p className={`form-message ${msg.includes("✅") ? "success" : "error"}`}>
+          {msg}
+        </p>
+      )}
     </form>
   );
 }

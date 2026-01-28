@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useCart } from "./CartContext";
-
 import "./navbar.css";
 
 export default function Navbar() {
@@ -12,13 +13,25 @@ export default function Navbar() {
 
   // 🛒 PANIER
   const { cartItems } = useCart();
+  const cartCount =
+    cartItems?.reduce(
+      (total, item) => total + (item.quantity || 1),
+      0
+    ) || 0;
 
-const cartCount = cartItems.reduce(
-  (total, item) => total + (item.quantity || 1),
-  0
-);
+  // 🔍 RECHERCHE
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
-  
+  const handleSearch = (e) => {
+    e.preventDefault();
+
+    if (!searchQuery.trim()) return;
+
+    router.push(`/recherche?q=${encodeURIComponent(searchQuery)}`);
+
+    setSearchQuery("");
+  };
 
   return (
     <header className="navbar">
@@ -28,6 +41,17 @@ const cartCount = cartItems.reduce(
         <Link href="/" className="logo">
           MyShop
         </Link>
+
+        {/* RECHERCHE */}
+        <form className="search-form" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Rechercher un produit..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button type="submit">🔍</button>
+        </form>
 
         {/* NAV */}
         <nav className="nav-links">
@@ -64,12 +88,12 @@ const cartCount = cartItems.reduce(
             </>
           )}
 
-          {/* CART */}
+          {/* PANIER */}
           <Link href="/cart" className="cart">
             🛒
-            <span className="cart-count">
-              {cartCount}
-            </span>
+            {cartCount > 0 && (
+              <span className="cart-count">{cartCount}</span>
+            )}
           </Link>
         </nav>
 

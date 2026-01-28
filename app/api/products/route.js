@@ -65,6 +65,33 @@ export async function GET(req) {
     );
   }
 }
+
+/* =======================
+   ✅ Fonction helper pour uploader plusieurs images
+======================= */
+async function uploadImages(files) {
+  const uploadDir = path.join(process.cwd(), "public/uploads");
+  
+  // Créer le dossier s'il n'existe pas
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const imagePaths = [];
+
+  for (const file of files) {
+    if (file && file.name) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name.replace(/\s+/g, "-")}`;
+      
+      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+      imagePaths.push(`/uploads/${fileName}`);
+    }
+  }
+
+  return imagePaths;
+}
+
 /* =======================
    POST - Ajouter produit
 ======================= */
@@ -85,11 +112,12 @@ export async function POST(req) {
     const description = formData.get("description");
 
     const price = Number(formData.get("price")) || 0;
-    const promoPrice = Number(formData.get("promoPrice")) || null;
+    // ✅ Après (retourne null si vide)
+const promoPriceRaw = formData.get("promoPrice");
+const promoPrice = promoPriceRaw && promoPriceRaw !== "" ? Number(promoPriceRaw) : null;
     const stock = Number(formData.get("stock")) || 0;
 
     const rawCategory = formData.get("category");
-    const file = formData.get("image");
 
     if (!name) {
       return NextResponse.json(
@@ -98,21 +126,9 @@ export async function POST(req) {
       );
     }
 
-    let imagePath = "";
-
-    // 📷 Upload image
-    if (file && file.name) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
-      imagePath = `/uploads/${fileName}`;
-    }
+    // ✅ Récupérer TOUTES les images (getAll au lieu de get)
+    const files = formData.getAll("images");
+    const imagePaths = await uploadImages(files);
 
     const product = await Product.create({
       name,
@@ -127,7 +143,10 @@ export async function POST(req) {
         rawCategory && rawCategory !== "null" && rawCategory !== ""
           ? rawCategory
           : undefined,
-      image: imagePath,
+      // ✅ Stocker le tableau d'images
+      images: imagePaths,
+      // ✅ Garder "image" pour rétrocompatibilité (première image)
+      image: imagePaths[0] || "",
       isAvailable: stock > 0,
     });
 
@@ -142,10 +161,8 @@ export async function POST(req) {
   }
 }
 
-
-
 /* =======================
-   PUT
+   PUT - Modifier produit
 ======================= */
 export async function PUT(req) {
   try {
@@ -158,27 +175,38 @@ export async function PUT(req) {
       return NextResponse.json({ message: "ID manquant" }, { status: 400 });
     }
 
+    // ✅ Récupérer les images existantes à conserver
+    const existingImagesRaw = formData.get("existingImages");
+    let existingImages = [];
+    
+    try {
+      existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : [];
+    } catch (e) {
+      existingImages = [];
+    }
+
+    // ✅ Récupérer et uploader les nouvelles images
+    const newFiles = formData.getAll("images");
+    const newImagePaths = await uploadImages(newFiles);
+
+    // ✅ Fusionner : images existantes + nouvelles images
+    const allImages = [...existingImages, ...newImagePaths];
+
     const updateData = {
       name: formData.get("name"),
+      brand: formData.get("brand"),
+      size: formData.get("size"),
+      condition: formData.get("condition"),
+      description: formData.get("description"),
       price: Number(formData.get("price")) || 0,
+      promoPrice: Number(formData.get("promoPrice")) || null,
       stock: Number(formData.get("stock")) || 0,
       category: formData.get("category") || null,
+      // ✅ Mettre à jour le tableau d'images
+      images: allImages,
+      image: allImages[0] || "",
+      isAvailable: Number(formData.get("stock")) > 0,
     };
-
-    const file = formData.get("image");
-
-    if (file && file.name) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
-      updateData.image = `/uploads/${fileName}`;
-    }
 
     const product = await Product.findByIdAndUpdate(_id, updateData, { new: true });
     return NextResponse.json({ product });

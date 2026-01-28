@@ -1,7 +1,8 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import ProductForm from "@/app/components/ProductForm";
-
+import "./products.css";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -43,12 +44,12 @@ export default function ProductsPage() {
   };
 
   const handleSave = async (formData) => {
-    if (editingProduct?._id) {
-      formData.append("_id", editingProduct._id);
-    }
-
     const method = editingProduct ? "PUT" : "POST";
-    const res = await fetch("/api/products", { method, body: formData });
+
+    const res = await fetch("/api/products", {
+      method,
+      body: formData,
+    });
 
     if (!res.ok) throw new Error("Erreur serveur");
 
@@ -57,8 +58,8 @@ export default function ProductsPage() {
     setEditingProduct(null);
   };
 
-  const handleEdit = (prod) => {
-    setEditingProduct(prod);
+  const handleEdit = (product) => {
+    setEditingProduct(product);
     setShowForm(true);
   };
 
@@ -75,9 +76,10 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="p-6 min-h-screen bg-gray-100">
+    <div className="dashboard-container p-6 min-h-screen bg-gray-100">
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Dashboard Produits</h1>
+        <h1 className="page-title">Dashboard Produits</h1>
         <button
           onClick={() => {
             setEditingProduct(null);
@@ -89,15 +91,15 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      {/* FILTRES */}
+      <div className="filters-bar">
         <input
-          placeholder="Rechercher..."
+          placeholder="Rechercher un produit..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className="border p-2 rounded flex-1"
         />
 
         <select
@@ -106,9 +108,8 @@ export default function ProductsPage() {
             setSelectedCategory(e.target.value);
             setPage(1);
           }}
-          className="border p-2 rounded"
         >
-          <option value="">-- Toutes catégories --</option>
+          <option value="">Toutes catégories</option>
           {categories.map((c) => (
             <option key={c._id} value={c._id}>
               {c.name}
@@ -117,68 +118,74 @@ export default function ProductsPage() {
         </select>
       </div>
 
-      <table className="w-full bg-white rounded shadow">
-        <thead className="bg-gray-200">
+      {/* TABLE */}
+      <table className="products-table">
+        <thead>
           <tr>
-            <th className="p-3">Image</th>
-            <th className="p-3">Nom</th>
-            <th className="p-3">Prix</th>
-            <th className="p-3">Stock</th>
-            <th className="p-3">Catégorie</th>
-            <th className="p-3 text-center">Actions</th>
+            <th>Image</th>
+            <th>Nom</th>
+            <th>Prix</th>
+            <th>Stock</th>
+            <th>Catégorie</th>
+            <th style={{ textAlign: "center" }}>Actions</th>
           </tr>
         </thead>
+
         <tbody>
           {products.length === 0 && (
             <tr>
-              <td colSpan="6" className="text-center p-4">
+              <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
                 Aucun produit trouvé
               </td>
             </tr>
           )}
 
           {products.map((p) => (
-            <tr key={p._id} className="border-b">
-              <td className="p-2">
+            <tr key={p._id}>
+              <td>
                 {p.image ? (
-                  <img
-                    src={p.image}
-                    className="w-12 h-12 object-cover rounded"
-                  />
+                  <img src={p.image} className="product-image" />
                 ) : (
-                  "No Image"
+                  "—"
                 )}
               </td>
-              <td className="p-2">{p.name}</td>
-              <td className="p-2">{p.price} €</td>
-              <td className="p-2">{p.stock}</td>
-              <td className="p-2">{p.category?.name || "Non classé"}</td>
-              <td className="p-2 flex gap-2 justify-center">
-                <button
-                  onClick={() => handleEdit(p)}
-                  className="bg-yellow-500 text-white px-2 py-1 rounded"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => handleDelete(p._id)}
-                  className="bg-red-600 text-white px-2 py-1 rounded"
-                >
-                  Supprimer
-                </button>
+              <td>{p.name}</td>
+              <td>{p.price} €</td>
+              <td>{p.stock}</td>
+              <td>{p.category?.name || "Non classé"}</td>
+              <td>
+                <div className="action-buttons">
+                  <button
+                    onClick={() => handleEdit(p)}
+                    className="btn-edit"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p._id)}
+                    className="btn-delete"
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
+      {/* MODAL FORM */}
       {showForm && (
-        <ProductForm
-          categories={categories}
-          editingProduct={editingProduct}
-          onSave={handleSave}
-          onCancel={() => setShowForm(false)}
-        />
+        <div className="form-overlay">
+          <div className="form-modal">
+            <ProductForm
+              categories={categories}
+              editingProduct={editingProduct}
+              onSave={handleSave}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
