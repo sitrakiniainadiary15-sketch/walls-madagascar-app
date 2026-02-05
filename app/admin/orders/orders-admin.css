@@ -1,0 +1,246 @@
+/* === PAGE ADMIN ORDERS === */
+
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --secondary: #0ea5e9;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+
+  --bg-page: #f1f5f9;
+  --bg-card: #ffffff;
+
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+
+  --radius: 14px;
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.12);
+
+  --transition: all 0.25s ease;
+}
+
+/* === PAGE === */
+body {
+  background: var(--bg-page);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* === TABLE CONTAINER === */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+/* === TABLE === */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 12px;
+  table-layout: fixed;
+}
+
+/* === HEAD === */
+thead th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 14px 16px;
+  text-align: left;
+}
+
+/* === ROW === */
+tbody tr {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+tbody tr:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* === CELL === */
+tbody td {
+  padding: 16px;
+  font-size: 14px;
+  color: var(--text-main);
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+
+  /* 🔑 FIX texte long */
+  word-break: break-word;
+  white-space: normal;
+  max-width: 220px;
+}
+
+tbody td:first-child {
+  border-left: 1px solid #e5e7eb;
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+
+tbody td:last-child {
+  border-right: 1px solid #e5e7eb;
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+/* Colonnes sensibles (email / adresse) */
+td:nth-child(2),
+td:nth-child(4) {
+  max-width: 260px;
+}
+
+/* Texte coupé optionnel */
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === TOTAL === */
+tbody td strong {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* === BUTTON === */
+button {
+  background: linear-gradient(135deg, #6366f1, #2563eb);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
+  transition: var(--transition);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(79, 70, 229, 0.45);
+}
+
+/* Bouton secondaire */
+.button-secondary {
+  background: linear-gradient(135deg, #64748b, #334155);
+}
+
+/* === SELECT === */
+select {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+}
+
+select:disabled {
+  opacity: 0.6;
+}
+
+/* === STATUS COLORS === */
+select option[value="pending"] {
+  color: var(--warning);
+}
+
+select option[value="confirmed"],
+select option[value="paid"],
+select option[value="delivered"] {
+  color: var(--success);
+}
+
+select option[value="cancelled"] {
+  color: var(--danger);
+}
+
+/* === PAYMENT ICON ALIGN === */
+td:nth-child(7) {
+  font-weight: 600;
+}
+
+/* === LOADING / TEXT === */
+p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ======================= */
+/* ===== RESPONSIVE ====== */
+/* ======================= */
+
+@media (max-width: 1024px) {
+  table {
+    font-size: 13px;
+  }
+}
+
+/* 📱 TABLE → CARDS */
+@media (max-width: 768px) {
+  .table-wrapper {
+    overflow-x: hidden;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody tr {
+    display: block;
+    margin-bottom: 18px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 8px 0;
+  }
+
+  tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 16px;
+    border: none;
+    max-width: 100%;
+  }
+
+  tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    padding-right: 12px;
+  }
+
+  tbody td:last-child {
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 768px) {
+  tbody td {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  tbody td select {
+    width: 100%;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .order-date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+}

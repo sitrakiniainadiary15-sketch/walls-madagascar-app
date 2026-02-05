@@ -1,16 +1,17 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next"; // ✅ CORRECTION
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/app/lib/db";
+
 import Order from "@/app/models/Order";
+import Product from "@/app/models/Product"; // ✅ OBLIGATOIRE
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    // 🔐 Protection admin
     if (!session || session.user.role !== "admin") {
       return NextResponse.json(
         { message: "Accès refusé" },
@@ -27,7 +28,8 @@ export async function GET() {
     return NextResponse.json(orders);
 
   } catch (error) {
-    console.error("ADMIN ORDERS ERROR:", error);
+    console.error("ADMIN ORDERS ERROR ❌:", error);
+
     return NextResponse.json(
       { message: error.message },
       { status: 500 }
