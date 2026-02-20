@@ -1,5 +1,4 @@
 // app/models/Product.js
-
 import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
@@ -17,13 +16,17 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    // ✅ Image principale
+    // Image principale
     image: {
       type: String,
       default: "",
     },
-    // ✅ NOUVEAU : Galerie d'images
+    // Galerie d'images
     images: [{
+      type: String,
+    }],
+    // ✅ IDs Cloudinary pour suppression
+    imagePublicIds: [{
       type: String,
     }],
     price: {
@@ -47,26 +50,29 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    // ✅ NOUVEAU : Caractéristiques
+    size: {
+      type: String,
+      default: "",
+    },
+    condition: {
+      type: String,
+      default: "",
+    },
     specifications: [{
       label: String,
       value: String,
     }],
-    // ✅ NOUVEAU : Tailles disponibles
     sizes: [{
       type: String,
     }],
-    // ✅ NOUVEAU : Couleurs disponibles
     colors: [{
       name: String,
-      code: String, // code hex
+      code: String,
     }],
-    // ✅ NOUVEAU : Poids pour livraison
     weight: {
       type: Number,
       default: 0,
     },
-    // ✅ NOUVEAU : Note moyenne
     rating: {
       type: Number,
       default: 0,
@@ -88,14 +94,17 @@ const ProductSchema = new mongoose.Schema(
 );
 
 // Générer le slug automatiquement
-ProductSchema.pre("save", function (next) {
+// ✅ NOUVEAU — async/await, sans "next"
+ProductSchema.pre("save", async function () {
   if (!this.slug) {
     this.slug = this.name
       .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+      .replace(/(^-|-$)/g, "")
+      + "-" + Date.now();
   }
-  next();
 });
 
 export default mongoose.models.Product || mongoose.model("Product", ProductSchema);

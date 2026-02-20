@@ -1,3 +1,4 @@
+// app/api/products/route.js
 export const runtime = "nodejs";
 
 import mongoose from "mongoose";
@@ -6,9 +7,7 @@ import "@/app/models/Category";
 import { connectDB } from "@/app/lib/db";
 import Product from "@/app/models/Product";
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-
+import cloudinary from "@/app/lib/cloudinary";
 
 /* =======================
    GET
@@ -16,10 +15,6 @@ import path from "path";
 export async function GET(req) {
   try {
     await connectDB();
-
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error("MongoDB non connecté");
-    }
 
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
@@ -30,13 +25,8 @@ export async function GET(req) {
     const skip = (page - 1) * limit;
     const filter = {};
 
-    if (search) {
-      filter.name = { $regex: search, $options: "i" };
-    }
-
-    if (category && category !== "") {
-      filter.category = category;
-    }
+    if (search) filter.name = { $regex: search, $options: "i" };
+    if (category && category !== "") filter.category = category;
 
     const total = await Product.countDocuments(filter).catch(() => 0);
 
@@ -58,66 +48,44 @@ export async function GET(req) {
     });
 
   } catch (error) {
-    console.error("❌ ERREUR GET PRODUITS:", error);
-    return NextResponse.json(
-      { message: error.message },
-      { status: 500 }
-    );
+    console.error("❌ ERREUR GET:", error.message);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
 
 /* =======================
-   ✅ Fonction helper pour uploader plusieurs images
+   Supprimer de Cloudinary
 ======================= */
-async function uploadImages(files) {
-  const uploadDir = path.join(process.cwd(), "public/uploads");
-  
-  // Créer le dossier s'il n'existe pas
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-
-  const imagePaths = [];
-
-  for (const file of files) {
-    if (file && file.name) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name.replace(/\s+/g, "-")}`;
-      
-      fs.writeFileSync(path.join(uploadDir, fileName), buffer);
-      imagePaths.push(`/uploads/${fileName}`);
+async function deleteFromCloudinary(publicIds) {
+  for (const publicId of publicIds) {
+    if (!publicId) continue;
+    try {
+      await cloudinary.uploader.destroy(publicId);
+      console.log(`🗑️ Image supprimée: ${publicId}`);
+    } catch (error) {
+      console.error(`❌ Erreur suppression: ${publicId}`, error);
     }
   }
-
-  return imagePaths;
 }
 
 /* =======================
    POST - Ajouter produit
+   ✅ Reçoit du JSON (images déjà uploadées)
 ======================= */
 export async function POST(req) {
   try {
     await connectDB();
+    console.log("🟢 POST produit - DB connectée");
 
-    if (mongoose.connection.readyState !== 1) {
-      throw new Error("MongoDB non connecté");
-    }
+    // ✅ JSON au lieu de FormData
+    const body = await req.json();
+    console.log("🟢 Body reçu:", { name: body.name, images: body.images?.length });
 
-    const formData = await req.formData();
-
-    const name = formData.get("name");
-    const brand = formData.get("brand");
-    const size = formData.get("size");
-    const condition = formData.get("condition");
-    const description = formData.get("description");
-
-    const price = Number(formData.get("price")) || 0;
-    // ✅ Après (retourne null si vide)
-const promoPriceRaw = formData.get("promoPrice");
-const promoPrice = promoPriceRaw && promoPriceRaw !== "" ? Number(promoPriceRaw) : null;
-    const stock = Number(formData.get("stock")) || 0;
-
-    const rawCategory = formData.get("category");
+    const {
+      name, brand, size, condition, description,
+      price, promoPrice, stock, category,
+      images, image, imagePublicIds,
+    } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -126,94 +94,83 @@ const promoPrice = promoPriceRaw && promoPriceRaw !== "" ? Number(promoPriceRaw)
       );
     }
 
-    // ✅ Récupérer TOUTES les images (getAll au lieu de get)
-    const files = formData.getAll("images");
-    const imagePaths = await uploadImages(files);
-
     const product = await Product.create({
       name,
-      brand,
-      size,
-      condition,
-      description,
-      price,
-      promoPrice,
-      stock,
-      category:
-        rawCategory && rawCategory !== "null" && rawCategory !== ""
-          ? rawCategory
-          : undefined,
-      // ✅ Stocker le tableau d'images
-      images: imagePaths,
-      // ✅ Garder "image" pour rétrocompatibilité (première image)
-      image: imagePaths[0] || "",
-      isAvailable: stock > 0,
+      brand: brand || "",
+      size: size || "",
+      condition: condition || "",
+      description: description || "",
+      price: Number(price) || 0,
+      promoPrice: promoPrice || null,
+      stock: Number(stock) || 0,
+      category: category && category !== "null" && category !== ""
+        ? category
+        : undefined,
+      images: images || [],
+      image: image || images?.[0] || "",
+      imagePublicIds: imagePublicIds || [],
+      isAvailable: Number(stock) > 0,
     });
 
+    console.log(`✅ Produit créé: ${product.name}`);
     return NextResponse.json(product, { status: 201 });
 
   } catch (error) {
-    console.error("❌ ERREUR POST PRODUIT:", error);
-    return NextResponse.json(
-      { message: error.message },
-      { status: 500 }
-    );
+    console.error("❌ ERREUR POST:", error.message);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
 
 /* =======================
    PUT - Modifier produit
+   ✅ Reçoit du JSON (images déjà uploadées)
 ======================= */
 export async function PUT(req) {
   try {
     await connectDB();
 
-    const formData = await req.formData();
-    const _id = formData.get("_id");
+    // ✅ JSON au lieu de FormData
+    const body = await req.json();
+    const {
+      _id, name, brand, size, condition, description,
+      price, promoPrice, stock, category,
+      images, image, imagePublicIds,
+    } = body;
 
     if (!_id) {
       return NextResponse.json({ message: "ID manquant" }, { status: 400 });
     }
 
-    // ✅ Récupérer les images existantes à conserver
-    const existingImagesRaw = formData.get("existingImages");
-    let existingImages = [];
-    
-    try {
-      existingImages = existingImagesRaw ? JSON.parse(existingImagesRaw) : [];
-    } catch (e) {
-      existingImages = [];
-    }
-
-    // ✅ Récupérer et uploader les nouvelles images
-    const newFiles = formData.getAll("images");
-    const newImagePaths = await uploadImages(newFiles);
-
-    // ✅ Fusionner : images existantes + nouvelles images
-    const allImages = [...existingImages, ...newImagePaths];
-
     const updateData = {
-      name: formData.get("name"),
-      brand: formData.get("brand"),
-      size: formData.get("size"),
-      condition: formData.get("condition"),
-      description: formData.get("description"),
-      price: Number(formData.get("price")) || 0,
-      promoPrice: Number(formData.get("promoPrice")) || null,
-      stock: Number(formData.get("stock")) || 0,
-      category: formData.get("category") || null,
-      // ✅ Mettre à jour le tableau d'images
-      images: allImages,
-      image: allImages[0] || "",
-      isAvailable: Number(formData.get("stock")) > 0,
+      name,
+      brand: brand || "",
+      size: size || "",
+      condition: condition || "",
+      description: description || "",
+      price: Number(price) || 0,
+      promoPrice: promoPrice || null,
+      stock: Number(stock) || 0,
+      category: category && category !== "null" && category !== ""
+        ? category
+        : undefined,
+      images: images || [],
+      image: image || images?.[0] || "",
+      imagePublicIds: imagePublicIds || [],
+      isAvailable: Number(stock) > 0,
     };
 
     const product = await Product.findByIdAndUpdate(_id, updateData, { new: true });
+
+    if (!product) {
+      return NextResponse.json({ message: "Produit introuvable" }, { status: 404 });
+    }
+
+    console.log(`✅ Produit modifié: ${product.name}`);
     return NextResponse.json({ product });
 
   } catch (error) {
-    console.error("ERREUR PUT:", error);
-    return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
+    console.error("❌ ERREUR PUT:", error.message);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
 
@@ -231,14 +188,17 @@ export async function DELETE(req) {
       return NextResponse.json({ message: "ID manquant" }, { status: 400 });
     }
 
+    const product = await Product.findById(id);
+    if (product?.imagePublicIds?.length > 0) {
+      await deleteFromCloudinary(product.imagePublicIds);
+    }
+
     await Product.findByIdAndDelete(id);
-    return NextResponse.json({ message: "Produit supprimé" });
+    console.log(`🗑️ Produit supprimé: ${id}`);
+    return NextResponse.json({ message: "Produit supprimé", success: true });
 
   } catch (error) {
-    console.error("PRODUCT API ERROR 👉", error);
-    return NextResponse.json(
-      { message: "Erreur serveur", error: error.message },
-      { status: 500 }
-    );
+    console.error("❌ ERREUR DELETE:", error.message);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }

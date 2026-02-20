@@ -19,6 +19,14 @@ export async function POST(req) {
     return NextResponse.json({ message: "Mot de passe incorrect" }, { status: 401 });
   }
 
+  // ✅ Vérification email obligatoire
+  if (!user.emailVerified) {
+    return NextResponse.json(
+      { message: "Veuillez vérifier votre email avant de vous connecter." },
+      { status: 403 }
+    );
+  }
+
   // 🔑 TOKEN
   const token = jwt.sign(
     { userId: user._id },

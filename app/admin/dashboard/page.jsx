@@ -22,11 +22,12 @@ export default async function AdminDashboard() {
         Dashboard Admin
       </h1>
 
-      {/* 📊 STATS + GRAPH */}
-      <DashboardStats />
+      {/* 🔗 NAVIGATION EN HAUT */}
+      <div className={styles.grid} style={{ marginBottom: "40px" }}>
+        <a href="/admin/inventory" className={styles.card}>
+          📦 Inventaire & Stock
+        </a>
 
-      {/* 🔗 NAVIGATION */}
-      <div className={styles.grid}>
         <a href="/admin/products" className={styles.card}>
           🛒 Gestion Produits
         </a>
@@ -39,18 +40,14 @@ export default async function AdminDashboard() {
           👤 Utilisateurs
         </a>
 
-        {/* ✅ BOUTON AJOUTÉ */}
         <a href="/admin/orders" className={styles.card}>
           📦 Voir les commandes
         </a>
 
-        <a href="/products/add" className={styles.card}>
-          ➕ Ajouter un produit
-        </a>
       </div>
+
+      {/* 📊 STATS + GRAPH EN BAS */}
+      <DashboardStats />
     </div>
-   
-
-
   );
 }

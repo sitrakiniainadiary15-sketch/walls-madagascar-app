@@ -13,76 +13,109 @@ export default function ProductForm({
   const [size, setSize] = useState(editingProduct?.size || "");
   const [condition, setCondition] = useState(editingProduct?.condition || "");
   const [description, setDescription] = useState(editingProduct?.description || "");
-
   const [price, setPrice] = useState(editingProduct?.price || "");
   const [promoPrice, setPromoPrice] = useState(editingProduct?.promoPrice || "");
   const [stock, setStock] = useState(editingProduct?.stock || "");
-
   const [category, setCategory] = useState(editingProduct?.category?._id || "");
 
-  const [imageFiles, setImageFiles] = useState([]);
+  const [uploadedUrls, setUploadedUrls] = useState(
+    editingProduct?.images || (editingProduct?.image ? [editingProduct.image] : [])
+  );
+  const [uploadedPublicIds, setUploadedPublicIds] = useState(
+    editingProduct?.imagePublicIds || []
+  );
   const [imagePreviews, setImagePreviews] = useState(
     editingProduct?.images || (editingProduct?.image ? [editingProduct.image] : [])
   );
 
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const handleImageChange = (e) => {
+  // ✅ Upload immédiat sur Cloudinary
+  const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    setImageFiles((prev) => [...prev, ...files]);
+    setUploading(true);
+    setMsg("📤 Upload en cours...");
 
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    try {
+      for (const file of files) {
+        const localPreview = URL.createObjectURL(file);
+        setImagePreviews((prev) => [...prev, localPreview]);
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", "product");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setMsg("❌ Erreur upload: " + data.message);
+          setUploading(false);
+          return;
+        }
+
+        setImagePreviews((prev) => [...prev.slice(0, -1), data.url]);
+        setUploadedUrls((prev) => [...prev, data.url]);
+        setUploadedPublicIds((prev) => [...prev, data.publicId]);
+      }
+
+      setMsg("✅ Images uploadées !");
+    } catch (err) {
+      setMsg("❌ Erreur: " + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeImage = (index) => {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-
-    const existingCount =
-      editingProduct?.images?.length || (editingProduct?.image ? 1 : 0);
-
-    if (index >= existingCount) {
-      const newFileIndex = index - existingCount;
-      setImageFiles((prev) => prev.filter((_, i) => i !== newFileIndex));
-    }
+    setUploadedUrls((prev) => prev.filter((_, i) => i !== index));
+    setUploadedPublicIds((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // ✅ Envoie du JSON pur
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (uploading) {
+      setMsg("⏳ Attendez la fin de l'upload...");
+      return;
+    }
+
     setLoading(true);
     setMsg("");
 
     try {
-      const formData = new FormData();
+      // ✅ Objet JSON simple
+      const body = {
+        name,
+        brand,
+        size,
+        condition,
+        description,
+        price: Number(price),
+        promoPrice: promoPrice ? Number(promoPrice) : null,
+        stock: Number(stock),
+        category: category || null,
+        images: uploadedUrls,
+        image: uploadedUrls[0] || "",
+        imagePublicIds: uploadedPublicIds,
+      };
 
-      formData.append("name", name);
-      formData.append("brand", brand);
-      formData.append("size", size);
-      formData.append("condition", condition);
-      formData.append("description", description);
+      if (editingProduct?._id) body._id = editingProduct._id;
 
-      formData.append("price", Number(price));
-      if (promoPrice) formData.append("promoPrice", Number(promoPrice));
-      formData.append("stock", Number(stock));
-
-      if (category) formData.append("category", category);
-
-      imageFiles.forEach((file) => {
-        formData.append("images", file);
-      });
-
-      const existingImages = imagePreviews.filter(
-        (img) => typeof img === "string" && !img.startsWith("blob:")
-      );
-      formData.append("existingImages", JSON.stringify(existingImages));
-
-      if (editingProduct?._id) formData.append("_id", editingProduct._id);
-
-      await onSave(formData);
+      // ✅ onSave reçoit un objet JSON, pas un FormData
+      await onSave(body);
       setMsg("✅ Produit enregistré !");
+
     } catch (err) {
       setMsg("❌ Erreur : " + err.message);
     } finally {
@@ -169,9 +202,15 @@ export default function ProductForm({
           accept="image/*"
           multiple
           onChange={handleImageChange}
+          disabled={uploading}
         />
+        {uploading && (
+          <p style={{ color: "#0070f3", marginTop: "8px" }}>
+            ⏳ Upload en cours...
+          </p>
+        )}
         <p className="image-count">
-          {imagePreviews.length} image(s) sélectionnée(s)
+          {uploadedUrls.length} image(s) sur Cloudinary ✅
         </p>
       </div>
 
@@ -194,8 +233,12 @@ export default function ProductForm({
       )}
 
       <div className="form-buttons">
-        <button type="submit" disabled={loading} className="btn-submit">
-          {loading ? "Chargement..." : "Enregistrer"}
+        <button
+          type="submit"
+          disabled={loading || uploading}
+          className="btn-submit"
+        >
+          {loading ? "Enregistrement..." : uploading ? "Upload..." : "Enregistrer"}
         </button>
         <button type="button" onClick={onCancel} className="btn-cancel">
           Annuler

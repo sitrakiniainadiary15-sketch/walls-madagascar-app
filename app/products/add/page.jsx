@@ -13,6 +13,8 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchCategories();
@@ -23,40 +25,74 @@ export default function ProductsPage() {
   }, [page, search, selectedCategory]);
 
   const fetchCategories = async () => {
-    const res = await fetch("/api/categories");
-    const data = await res.json();
-    setCategories(data.categories || data || []);
+    try {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+      setCategories(data.categories || data || []);
+    } catch (err) {
+      console.error("Erreur chargement catégories:", err);
+    }
   };
 
   const fetchProducts = async () => {
-    const params = new URLSearchParams();
-    params.set("page", page);
-    params.set("limit", 5);
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("limit", 10);
 
-    if (search) params.set("search", search);
-    if (selectedCategory) params.set("category", selectedCategory);
+      if (search) params.set("search", search);
+      if (selectedCategory) params.set("category", selectedCategory);
 
-    const res = await fetch(`/api/products?${params.toString()}`);
-    const data = await res.json();
+      const res = await fetch(`/api/products?${params.toString()}`);
+      const data = await res.json();
 
-    setProducts(data.products || []);
-    setTotalPages(data.totalPages || 1);
+      setProducts(data.products || []);
+      setTotalPages(data.totalPages || 1);
+    } catch (err) {
+      console.error("Erreur chargement produits:", err);
+      setError("Impossible de charger les produits");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = async (formData) => {
+  // ✅ CORRECTION : Envoie du JSON au lieu de FormData
+ const handleSave = async (productData) => {
+  try {
+    setLoading(true);
+    setError("");
+
     const method = editingProduct ? "PUT" : "POST";
 
     const res = await fetch("/api/products", {
       method,
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(productData),
     });
 
-    if (!res.ok) throw new Error("Erreur serveur");
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Erreur serveur");
+    }
 
     await fetchProducts();
     setShowForm(false);
     setEditingProduct(null);
-  };
+
+    alert("Produit enregistré avec succès !");
+  } catch (err) {
+    console.error("Erreur sauvegarde:", err);
+    setError(err.message);
+    alert("Erreur: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleEdit = (product) => {
     setEditingProduct(product);
@@ -64,125 +100,241 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Supprimer ce produit ?")) return;
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) return;
 
-    const res = await fetch(`/api/products?id=${id}`, {
-      method: "DELETE",
-    });
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/products?id=${id}`, {
+        method: "DELETE",
+      });
 
-    if (!res.ok) throw new Error("Erreur serveur");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erreur serveur");
+      }
 
-    await fetchProducts();
+      alert("Produit supprimé avec succès !");
+      await fetchProducts();
+    } catch (err) {
+      console.error("❌ Erreur suppression:", err);
+      alert("Erreur : " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="dashboard-container p-6 min-h-screen bg-gray-100">
+    <div className="dashboard-container">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="page-title">Dashboard Produits</h1>
+      <div className="page-header">
+        <h1 className="page-title">📦 Gestion des Produits</h1>
         <button
           onClick={() => {
             setEditingProduct(null);
             setShowForm(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="btn btn-primary"
+          disabled={loading}
         >
-          + Ajouter produit
+          ➕ Ajouter un produit
         </button>
       </div>
 
-      {/* FILTRES */}
-      <div className="filters-bar">
-        <input
-          placeholder="Rechercher un produit..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
+      {/* ERROR MESSAGE */}
+      {error && (
+        <div className="alert alert-error">
+          ❌ {error}
+        </div>
+      )}
 
-        <select
-          value={selectedCategory}
-          onChange={(e) => {
-            setSelectedCategory(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">Toutes catégories</option>
-          {categories.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      {/* FILTRES */}
+      <div className="filters-card">
+        <div className="filter-group">
+          <label>🔍 Rechercher</label>
+          <input
+            type="text"
+            placeholder="Nom du produit..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="filter-input"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label>📂 Catégorie</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setPage(1);
+            }}
+            className="filter-select"
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {(search || selectedCategory) && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setSelectedCategory("");
+              setPage(1);
+            }}
+            className="btn btn-secondary"
+          >
+            🔄 Réinitialiser
+          </button>
+        )}
       </div>
 
+      {/* STATS */}
+      <div className="stats-bar">
+        <span className="stat-item">
+          📊 Total : {products.length} produit{products.length > 1 ? "s" : ""}
+        </span>
+        <span className="stat-item">
+          📄 Page {page} sur {totalPages}
+        </span>
+      </div>
+
+      {/* LOADING */}
+      {loading && (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Chargement...</p>
+        </div>
+      )}
+
       {/* TABLE */}
-      <table className="products-table">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Nom</th>
-            <th>Prix</th>
-            <th>Stock</th>
-            <th>Catégorie</th>
-            <th style={{ textAlign: "center" }}>Actions</th>
-          </tr>
-        </thead>
+      {!loading && (
+        <div className="table-container">
+          <table className="products-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Nom</th>
+                <th>Marque</th>
+                <th>Prix</th>
+                <th>Promo</th>
+                <th>Stock</th>
+                <th>Catégorie</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {products.length === 0 && (
-            <tr>
-              <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                Aucun produit trouvé
-              </td>
-            </tr>
-          )}
+            <tbody>
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="empty-row">
+                    😔 Aucun produit trouvé
+                  </td>
+                </tr>
+              )}
 
-          {products.map((p) => (
-            <tr key={p._id}>
-              <td>
-                {p.image ? (
-                  <img src={p.image} className="product-image" />
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td>{p.name}</td>
-              <td>{p.price} €</td>
-              <td>{p.stock}</td>
-              <td>{p.category?.name || "Non classé"}</td>
-              <td>
-                <div className="action-buttons">
-                  <button
-                    onClick={() => handleEdit(p)}
-                    className="btn-edit"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDelete(p._id)}
-                    className="btn-delete"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              {products.map((p) => (
+                <tr key={p._id}>
+                  <td>
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="product-thumbnail"
+                      />
+                    ) : (
+                      <div className="no-image">📷</div>
+                    )}
+                  </td>
+                  <td>
+                    <strong>{p.name}</strong>
+                  </td>
+                  <td>{p.brand || "—"}</td>
+                  <td className="price-cell">{p.price} Ar</td>
+                  <td className="promo-cell">
+                    {p.promoPrice ? (
+                      <span className="promo-badge">{p.promoPrice} Ar</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    <span className={`stock-badge ${p.stock === 0 ? "out" : p.stock < 5 ? "low" : "ok"}`}>
+                      {p.stock}
+                    </span>
+                  </td>
+                  <td>{p.category?.name || "Non classé"}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleEdit(p)}
+                        className="btn-icon btn-edit"
+                        title="Modifier"
+                        disabled={loading}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p._id)}
+                        className="btn-icon btn-delete"
+                        title="Supprimer"
+                        disabled={loading}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1 || loading}
+            className="btn-page"
+          >
+            ← Précédent
+          </button>
+
+          <span className="page-info">
+            Page {page} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages || loading}
+            className="btn-page"
+          >
+            Suivant →
+          </button>
+        </div>
+      )}
 
       {/* MODAL FORM */}
       {showForm && (
-        <div className="form-overlay">
-          <div className="form-modal">
+        <div className="modal-overlay">
+          <div className="modal-content">
             <ProductForm
               categories={categories}
               editingProduct={editingProduct}
               onSave={handleSave}
-              onCancel={() => setShowForm(false)}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingProduct(null);
+              }}
             />
           </div>
         </div>
